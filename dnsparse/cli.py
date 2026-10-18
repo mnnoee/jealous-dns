@@ -43,6 +43,8 @@ def main():
     ap.add_argument("-o", "--output", help="файл для результата (по умолчанию stdout)")
     ap.add_argument("--no-pretty", action="store_true", help="не выравнивать колонки")
     ap.add_argument("--gui", action="store_true", help="запустить графический интерфейс (Qt5/6)")
+    ap.add_argument("--json", nargs="?", const="report.json", metavar="PATH",
+                    help="записать машиночитаемый JSON-отчёт (по умолчанию report.json)")
     args = ap.parse_args()
 
     if args.gui:
@@ -53,11 +55,21 @@ def main():
     text = _read_inputs(args.paths)
     if not text.strip():
         print("Нет данных.", file=sys.stderr)
+        # контракт --json: отчёт пишется даже когда распарсить нечего
+        if args.json:
+            from .json_export import write_json_report
+            path = write_json_report([], args.json)
+            print(f"JSON-отчёт записан в: {path}", file=sys.stderr)
         return
 
     records = DNSParser.parse(text)
     if not records:
         print("Не распознано. Проверь формат.", file=sys.stderr)
+        # контракт --json: отчёт пишется даже когда распарсить нечего
+        if args.json:
+            from .json_export import write_json_report
+            path = write_json_report([], args.json)
+            print(f"JSON-отчёт записан в: {path}", file=sys.stderr)
         return
 
     formatted = DNSFormatter(is_pretty=not args.no_pretty).format(records)
@@ -67,6 +79,11 @@ def main():
         print(f"Результат записан в: {args.output}", file=sys.stderr)
     else:
         print(formatted)
+
+    if args.json:
+        from .json_export import write_json_report
+        path = write_json_report(records, args.json)
+        print(f"JSON-отчёт записан в: {path}", file=sys.stderr)
 
 
 if __name__ == "__main__":
